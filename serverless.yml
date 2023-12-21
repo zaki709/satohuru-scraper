@@ -1,0 +1,85 @@
+useDotenv: true
+
+service: Satohuru_scraper
+frameworkVersion: "3"
+
+plugins:
+  - serverless-offline
+  - serverless-python-requirements
+  - serverless-dotenv-plugin
+  - serverless-prune-plugin
+  - serverless-ignore
+
+custom:
+  # Default stage (default: dev)
+  default:
+    stage: dev
+
+  # Serverless Offline
+  # see: https://www.serverless.com/plugins/serverless-offline
+  serverless-offline:
+    httpPort: 5000
+
+  # Serverless Prune Plugin
+  # see: https://www.serverless.com/plugins/serverless-prune-plugin
+  prune:
+    automatic: true
+    number: 3
+  # Serverless Python Requirements
+  pythonRequirements:
+    # comment out this options the first deployment
+    # Cross compiling
+    dockerizePip: true
+    useDownloadCache: true
+    useStaticCache: true
+    # poetry
+    usePoetry: true
+
+provider:
+  name: aws
+  # Default region (default: us-east-1)
+  region: ap-northeast-1
+  # Default stage (default: dev)
+  stage: ${opt:stage, self:custom.default.stage}
+  # Lambda configuration
+  runtime: python3.11
+  runtimeManagement: auto
+  # Processor architecture: 'x86_64' or 'arm64' via Graviton2 (default: x86_64)
+  architecture: x86_64
+  # Default memory size for functions (default: 1024MB)
+  memorySize: 512
+  # Default timeout for functions (default: 6 seconds)
+  # Note: API Gateway has a maximum timeout of 30 seconds
+  timeout: 10
+
+  # API Gateway configuration
+  apiGateway:
+    binaryMediaTypes:
+      - "*/*"
+
+  # Function environment variables
+  environment:
+    TZ: Asia/Tokyo
+    APP_ENV: ${self:provider.stage}
+
+# Packaging information here
+package:
+  patterns:
+    - "src/**"
+    - "!.venv/**"
+    - "!node_modules/**"
+    - "!tests/**"
+    - "!__pycache__/**"
+    - "!.vscode/**"
+    - "!.git/**"
+    - "!*.yml"
+    - "!*.lock"
+
+functions:
+  ApplicationApiHandler:
+    handler: src/handlers/app.lambda_handler
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: true
